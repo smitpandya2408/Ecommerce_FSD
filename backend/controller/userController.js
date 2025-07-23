@@ -27,7 +27,6 @@ const loginuser = async (req, res) => {
 
     const token = createToken(user._id);
     res.json({ success: true, token });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
@@ -48,11 +47,17 @@ const registerUser = async (req, res) => {
 
     // Validate email and password
     if (!validator.isEmail(email)) {
-      return res.json({ success: false, message: "Please enter a valid email" });
+      return res.json({
+        success: false,
+        message: "Please enter a valid email",
+      });
     }
 
     if (password.length < 8) {
-      return res.json({ success: false, message: "Password must be at least 8 characters" });
+      return res.json({
+        success: false,
+        message: "Password must be at least 8 characters",
+      });
     }
 
     // Hash the password
@@ -71,16 +76,32 @@ const registerUser = async (req, res) => {
     const token = createToken(user._id);
 
     res.json({ success: true, token });
-
   } catch (error) {
     console.error(error);
     res.status(500).json({ success: false, message: "Server error" });
   }
 };
-
-// Admin login route (pending logic)
 const adminLogin = async (req, res) => {
-  
-};
+  try {
+    const { email, password } = req.body;
 
+    if (
+      email === process.env.ADMIN_EMAIL &&
+      password === process.env.ADMIN_PASSWORD
+    ) {
+      const token = jwt.sign(
+        { email }, // payload
+        process.env.JWT_SECRET,
+        { expiresIn: "1d" }
+      );
+
+      res.status(200).json({ success: true, token });
+    } else {
+      res.status(401).json({ success: false, message: "Invalid credentials" });
+    }
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ success: false, message: "Server error" });
+  }
+};
 export { loginuser, registerUser, adminLogin };
