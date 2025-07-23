@@ -2,8 +2,9 @@ import React, { useState } from "react";
 import upload_area from "../assets/assets/upload_area.png";
 import axios from "axios";
 import { backendUrl } from "../App";
+import { toast } from "react-toastify";
 
-const Add = () => {
+const Add = ({ token }) => {
   const [image1, setImage1] = useState(null);
   const [image2, setImage2] = useState(null);
   const [image3, setImage3] = useState(null);
@@ -26,20 +27,46 @@ const Add = () => {
       formdata.append("description", description);
       formdata.append("price", price);
       formdata.append("category", category);
-      formdata.append("subcategory", subcategory);
-      formdata.append("bestseller", bestseller);
-      formdata.append("size", JSON.stringify(size));
+      formdata.append("subCategory", subcategory);
+      formdata.append("bestseller", JSON.stringify(bestseller));
+      formdata.append("sizes", JSON.stringify(size || []));
 
-      image1 && formdata.append("image1", image1);
-      image2 && formdata.append("image2", image2);
-      image3 && formdata.append("image3", image3);
-      image4 && formdata.append("image4", image4);
+      if (image1) formdata.append("image1", image1);
+      if (image2) formdata.append("image2", image2);
+      if (image3) formdata.append("image3", image3);
+      if (image4) formdata.append("image4", image4);
 
-      const response=await axios.post(backendUrl + "api/product/add", formdata);
+      const response = await axios.post(
+        backendUrl + "/api/product/add",
+        formdata,
+        {
+          headers: {
+            token,
+            "Content-Type": "multipart/form-data",
+          },
+        }
+
+        
+      );
+
+      if(response.data.success){
+        toast.success(response.data.message)
+        setName('')
+        setDescription('')
+        setImage1(false)
+        setImage2(false)
+        setImage3(false)
+        setImage4(false)
+        setPrice('')
+      }else{
+        toast.error(response.data.message)
+      }
 
       console.log(response.data);
     } catch (error) {
-      console.log(error);
+      console.log(error)
+      console.log(error.message);
+      
     }
   };
 
