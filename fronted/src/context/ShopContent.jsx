@@ -22,7 +22,7 @@
 
 // export default ShopContextProvider;
 import { createContext,  useState } from "react";
-import { products } from "../assets/frontend_assets/assets";
+//import { products } from "../assets/frontend_assets/assets";
 import { toast } from "react-toastify";
 import { useNavigate } from "react-router-dom";
 
@@ -32,10 +32,12 @@ export const ShopContext = createContext();
 const ShopContextProvider = ({ children }) => {
   const currency = "$";
   const delivery_fee = 10;
+  const backendUrl = import.meta.env.VITE_BACKEND_URL;
 
   const [search, setSearch] = useState("");
   const [showSearch, setShowSearch] = useState(false);
   const [cartitems, setCartitems] = useState({});
+  const [products,setProducts] = useState([])
   const navigate = useNavigate()
 
   const addtocart = (itemId, size) => {
@@ -94,6 +96,16 @@ const ShopContextProvider = ({ children }) => {
     return totalAmount
   }
 
+  const getProductsData = async()=>{
+    try{
+
+    }
+    catch(error)
+    {
+      
+    }
+  }
+
   const value = {
     products,
     currency,
@@ -106,7 +118,7 @@ const ShopContextProvider = ({ children }) => {
     addtocart,
     getCartCount,
     updateQuantity,
-    getCartAmount,navigate
+    getCartAmount,navigate,backendUrl
   };
 
   return <ShopContext.Provider value={value}>{children}</ShopContext.Provider>;
