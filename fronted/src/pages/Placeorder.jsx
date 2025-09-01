@@ -76,6 +76,8 @@ const Placeorder = () => {
             orderData,
             { headers: { token } }
           );
+          console.log(response.data);
+          
           if (response.data.success) {
             setCartitems({}); // ✅ fixed variable
             navigate("/orders");
