@@ -76,7 +76,7 @@ const Placeorder = () => {
             orderData,
             { headers: { token } }
           );
-          console.log(response.data);
+          console.log(response.data.success);
           
           if (response.data.success) {
             setCartitems({}); // ✅ fixed variable
@@ -86,8 +86,6 @@ const Placeorder = () => {
           }
           break;
         }
-
-        // Add Stripe / Razorpay cases here if needed
         default:
           toast.error("Payment method not supported");
       }

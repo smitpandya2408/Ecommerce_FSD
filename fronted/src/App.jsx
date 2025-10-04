@@ -7,17 +7,17 @@ import Product from "./pages/Product";
 import Cart from "./pages/Cart";
 import Login from "./pages/Login";
 import Placeorder from "./pages/Placeorder";
-import Order from "./pages/Order/";
+import Order from "./pages/Order";
 import Collection from "./pages/Collection";
 import Navbar from "./components/Navbar";
 import Fotter from "./components/Fotter";
 import SearchBar from "./components/SearchBar";
-import { ToastContainer, toast } from "react-toastify";
+import { ToastContainer } from "react-toastify";
 
 function App() {
   return (
     <div className="px-4 sm:px-[5vw] md:px-[7vw] lg:px-[9vw]">
-    <ToastContainer/>
+      <ToastContainer />
       <Navbar />
       <SearchBar />
       <Routes>
@@ -29,7 +29,7 @@ function App() {
         <Route path="/cart" element={<Cart />} />
         <Route path="/login" element={<Login />} />
         <Route path="/place-order" element={<Placeorder />} />
-        <Route path="/order" element={<Order />} />
+        <Route path="/orders" element={<Order />} />   {/* ✅ updated */}
       </Routes>
       <Fotter />
     </div>

@@ -141,12 +141,12 @@ const ShopContextProvider = ({ children }) => {
 
   // Restore token & fetch cart
   useEffect(() => {
-    if (!token && localStorage.getItem("token")) {
-      const storedToken = localStorage.getItem("token");
+    const storedToken = localStorage.getItem("token");
+    if (storedToken && !token) {
       setToken(storedToken);
       getUserCart(storedToken);
     }
-  }, []);
+  }, [token]);
 
   const value = {
     products,
@@ -159,6 +159,7 @@ const ShopContextProvider = ({ children }) => {
     cartitems,
     setCartitems,
     addtocart,
+    setCartitems,
     getCartCount,
     updateQuantity,
     getCartAmount,
