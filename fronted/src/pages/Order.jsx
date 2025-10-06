@@ -18,24 +18,22 @@ const Order = () => {
 
       const response = await axios.post(
         `${backendUrl}/api/order/userorders`,
-        {}, // empty body, userId comes from middleware
-        { headers: { token } }
+        {},
+        { headers: { Authorization: `Bearer ${token}` } } // ✅ Fixed
       );
 
-      console.log("Backend response:", response.data);
-
       if (response.data.success && response.data.orders.length > 0) {
-        let allOrdersItem = [];
+        const allOrdersItem = [];
         response.data.orders.forEach((order) => {
-          if (order.items && order.items.length > 0) {
-            order.items.forEach((item) => {
-              item.status = order.status || "Pending";
-              item.payment = order.payment || false;
-              item.paymentMethod = order.paymentMethod || "N/A";
-              item.date = order.date || Date.now();
-              allOrdersItem.push(item);
+          order.items?.forEach((item) => {
+            allOrdersItem.push({
+              ...item,
+              status: order.status || "Pending",
+              payment: order.payment || false,
+              paymentMethod: order.paymentMethod || "N/A",
+              date: order.date || Date.now(),
             });
-          }
+          });
         });
 
         setOrderData(allOrdersItem.reverse());
@@ -54,10 +52,27 @@ const Order = () => {
     loadOrderData();
   }, [token]);
 
+  const statusColor = (status) => {
+    switch (status) {
+      case "Order Placed":
+        return "bg-blue-400";
+      case "Packing":
+        return "bg-yellow-400";
+      case "Shipped":
+        return "bg-purple-500";
+      case "Out Of Delivery":
+        return "bg-orange-500";
+      case "Delivered":
+        return "bg-green-500";
+      default:
+        return "bg-gray-400";
+    }
+  };
+
   if (!token) return <Login />;
 
   return (
-    <div className="border-t pt-16">
+    <div className="border-t pt-16 px-4 md:px-8 space-y-6">
       <div className="text-2xl mb-6">
         <Title text1="MY" text2="ORDERS" />
       </div>
@@ -88,35 +103,24 @@ const Order = () => {
                   <p>Quantity: {item.quantity || 1}</p>
                   <p>Size: {item.size || "M"}</p>
                 </div>
-                <p className="mt-2">
-                  Date:{" "}
-                  <span className="text-gray-400">
-                    {item.date
-                      ? new Date(item.date).toLocaleDateString()
-                      : "N/A"}
-                  </span>
+                <p className="mt-2 text-gray-400">
+                  Date: {new Date(item.date).toLocaleDateString()}
                 </p>
                 <p className="mt-1 text-sm text-gray-600">
-                  Payment: {item.payment ? "Paid" : "Pending"} | Method:{" "}
-                  {item.paymentMethod}
+                  Payment: {item.payment ? "Paid" : "Pending"} | Method: {item.paymentMethod}
                 </p>
               </div>
             </div>
 
-            <div className="md:w-1/2 flex justify-between">
+            <div className="md:w-1/2 flex justify-between items-center mt-2 md:mt-0">
               <div className="flex items-center gap-2">
                 <span
-                  className={`block w-2 h-2 rounded-full ${
-                    item.status === "Ready To Ship"
-                      ? "bg-green-500"
-                      : "bg-gray-400"
-                  }`}
+                  className={`block w-3 h-3 rounded-full ${statusColor(item.status)}`}
                 />
                 <p className="text-sm md:text-base">{item.status}</p>
               </div>
-              {/* <button className="border px-4 py-2 text-sm font-medium rounded-sm">
-                Track order
-              </button> */}
+              {/* Optional Track button */}
+              {/* <button className="border px-4 py-2 text-sm font-medium rounded-sm">Track order</button> */}
             </div>
           </div>
         ))

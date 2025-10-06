@@ -87,7 +87,23 @@ const userOrders = async (req, res) => {
 // Admin: Update order status
 const updateStatus = async (req, res) => {
   try {
-    res.json({ success: false, message: "Update status not implemented yet" });
+    const { orderId, status } = req.body;
+
+    if (!orderId || !status) {
+      return res.status(400).json({ success: false, message: "orderId and status are required" });
+    }
+
+    const updatedOrder = await orderModel.findByIdAndUpdate(
+      orderId,
+      { status },
+      { new: true } // returns the updated document
+    );
+
+    if (!updatedOrder) {
+      return res.status(404).json({ success: false, message: "Order not found" });
+    }
+
+    res.json({ success: true, message: "Order status updated", order: updatedOrder });
   } catch (error) {
     console.log(error);
     res.status(500).json({ success: false, message: error.message });

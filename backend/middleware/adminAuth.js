@@ -2,19 +2,20 @@ import jwt from "jsonwebtoken";
 
 const adminAuth = async (req, res, next) => {
   try {
-    const { token } = req.headers;
+    // ✅ Read token from Authorization header
+    const authHeader = req.headers.authorization;
 
-    if (!token) {
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
       return res.json({
         success: false,
         message: "Not authorized, login again (no token)",
       });
     }
 
-    // Verify token and store result in a variable
+    const token = authHeader.split(" ")[1];
     const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
-    // Check if decoded token has the correct admin email
+    // Check admin email
     if (decoded.email !== process.env.ADMIN_EMAIL) {
       return res.json({
         success: false,
@@ -22,7 +23,6 @@ const adminAuth = async (req, res, next) => {
       });
     }
 
-    // All good
     next();
   } catch (error) {
     console.error("Admin Auth Error:", error);
