@@ -1,0 +1,412 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Animation Examples - E-Commerce Website</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            padding: 40px 20px;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        h1 {
+            text-align: center;
+            color: white;
+            margin-bottom: 40px;
+            font-size: 2.5rem;
+            animation: fadeIn 1s ease-out;
+        }
+
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 30px;
+            margin-bottom: 40px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 15px;
+            padding: 30px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+
+        .card h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5rem;
+        }
+
+        .demo-box {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            border-radius: 10px;
+            text-align: center;
+            font-weight: bold;
+            margin: 10px 0;
+            cursor: pointer;
+        }
+
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        @keyframes slideInLeft {
+            from { opacity: 0; transform: translateX(-50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes slideInRight {
+            from { opacity: 0; transform: translateX(50px); }
+            to { opacity: 1; transform: translateX(0); }
+        }
+
+        @keyframes scaleIn {
+            from { opacity: 0; transform: scale(0.8); }
+            to { opacity: 1; transform: scale(1); }
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes pulse {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.05); }
+        }
+
+        @keyframes rotate {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            25% { transform: translateX(-10px); }
+            75% { transform: translateX(10px); }
+        }
+
+        @keyframes float {
+            0%, 100% { transform: translateY(0px); }
+            50% { transform: translateY(-20px); }
+        }
+
+        @keyframes shimmer {
+            0% { background-position: -1000px 0; }
+            100% { background-position: 1000px 0; }
+        }
+
+        /* Animation Classes */
+        .animate-fadeIn { animation: fadeIn 1s ease-out; }
+        .animate-slideInLeft { animation: slideInLeft 1s ease-out; }
+        .animate-slideInRight { animation: slideInRight 1s ease-out; }
+        .animate-scaleIn { animation: scaleIn 0.5s ease-out; }
+        .animate-bounce { animation: bounce 1s ease-in-out infinite; }
+        .animate-pulse { animation: pulse 2s ease-in-out infinite; }
+        .animate-rotate { animation: rotate 2s linear infinite; }
+        .animate-shake { animation: shake 0.5s ease-in-out; }
+        .animate-float { animation: float 3s ease-in-out infinite; }
+
+        .shimmer {
+            background: linear-gradient(90deg, #f0f0f0 25%, #e0e0e0 50%, #f0f0f0 75%);
+            background-size: 1000px 100%;
+            animation: shimmer 2s infinite;
+        }
+
+        /* Hover Effects */
+        .hover-lift {
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+        .hover-lift:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 20px 40px rgba(0,0,0,0.3);
+        }
+
+        .hover-scale {
+            transition: transform 0.3s ease;
+        }
+
+        .hover-scale:hover {
+            transform: scale(1.1);
+        }
+
+        .btn-click {
+            transition: transform 0.1s ease;
+        }
+
+        .btn-click:active {
+            transform: scale(0.95);
+        }
+
+        button {
+            background: #667eea;
+            color: white;
+            border: none;
+            padding: 15px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            cursor: pointer;
+            margin: 10px;
+        }
+
+        .info {
+            background: #f0f0f0;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 14px;
+            color: #666;
+        }
+
+        .code {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            overflow-x: auto;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🎨 Animation Examples</h1>
+
+        <div class="grid">
+            <!-- Fade In -->
+            <div class="card">
+                <h2>Fade In</h2>
+                <div class="demo-box animate-fadeIn">
+                    Fade In Animation
+                </div>
+                <div class="info">
+                    Smooth fade in from bottom. Perfect for page content and cards.
+                </div>
+                <div class="code">
+                    className="animate-fadeIn"
+                </div>
+            </div>
+
+            <!-- Slide In Left -->
+            <div class="card">
+                <h2>Slide In Left</h2>
+                <div class="demo-box animate-slideInLeft">
+                    Slide From Left
+                </div>
+                <div class="info">
+                    Slides in from the left side. Great for sidebars and menus.
+                </div>
+                <div class="code">
+                    className="animate-slideInLeft"
+                </div>
+            </div>
+
+            <!-- Slide In Right -->
+            <div class="card">
+                <h2>Slide In Right</h2>
+                <div class="demo-box animate-slideInRight">
+                    Slide From Right
+                </div>
+                <div class="info">
+                    Slides in from the right side. Perfect for notifications.
+                </div>
+                <div class="code">
+                    className="animate-slideInRight"
+                </div>
+            </div>
+
+            <!-- Scale In -->
+            <div class="card">
+                <h2>Scale In</h2>
+                <div class="demo-box animate-scaleIn">
+                    Scale Up
+                </div>
+                <div class="info">
+                    Grows from small to normal size. Ideal for modals and popups.
+                </div>
+                <div class="code">
+                    className="animate-scaleIn"
+                </div>
+            </div>
+
+            <!-- Bounce -->
+            <div class="card">
+                <h2>Bounce</h2>
+                <div class="demo-box animate-bounce">
+                    Bouncing!
+                </div>
+                <div class="info">
+                    Continuous bouncing effect. Great for call-to-action elements.
+                </div>
+                <div class="code">
+                    className="animate-bounce"
+                </div>
+            </div>
+
+            <!-- Pulse -->
+            <div class="card">
+                <h2>Pulse</h2>
+                <div class="demo-box animate-pulse">
+                    Pulsing
+                </div>
+                <div class="info">
+                    Subtle pulse effect. Perfect for highlighting important items.
+                </div>
+                <div class="code">
+                    className="animate-pulse"
+                </div>
+            </div>
+
+            <!-- Float -->
+            <div class="card">
+                <h2>Float</h2>
+                <div class="demo-box animate-float">
+                    Floating
+                </div>
+                <div class="info">
+                    Gentle floating motion. Nice for decorative elements.
+                </div>
+                <div class="code">
+                    className="animate-float"
+                </div>
+            </div>
+
+            <!-- Rotate -->
+            <div class="card">
+                <h2>Rotate</h2>
+                <div class="demo-box animate-rotate">
+                    ⚙️
+                </div>
+                <div class="info">
+                    Continuous rotation. Perfect for loading spinners.
+                </div>
+                <div class="code">
+                    className="animate-rotate"
+                </div>
+            </div>
+
+            <!-- Shake -->
+            <div class="card">
+                <h2>Shake</h2>
+                <div class="demo-box animate-shake">
+                    Shake!
+                </div>
+                <div class="info">
+                    Quick shake effect. Great for error feedback.
+                </div>
+                <div class="code">
+                    className="animate-shake"
+                </div>
+            </div>
+
+            <!-- Hover Lift -->
+            <div class="card">
+                <h2>Hover Lift</h2>
+                <div class="demo-box hover-lift">
+                    Hover Over Me
+                </div>
+                <div class="info">
+                    Lifts up on hover with shadow. Perfect for product cards.
+                </div>
+                <div class="code">
+                    className="hover-lift"
+                </div>
+            </div>
+
+            <!-- Hover Scale -->
+            <div class="card">
+                <h2>Hover Scale</h2>
+                <div class="demo-box hover-scale">
+                    Hover to Scale
+                </div>
+                <div class="info">
+                    Scales up on hover. Great for buttons and images.
+                </div>
+                <div class="code">
+                    className="hover-scale"
+                </div>
+            </div>
+
+            <!-- Shimmer -->
+            <div class="card">
+                <h2>Shimmer Loading</h2>
+                <div class="demo-box shimmer" style="color: transparent;">
+                    Loading...
+                </div>
+                <div class="info">
+                    Shimmer loading effect. Perfect for skeleton screens.
+                </div>
+                <div class="code">
+                    className="shimmer"
+                </div>
+            </div>
+        </div>
+
+        <!-- Button Examples -->
+        <div class="card" style="margin-bottom: 40px;">
+            <h2>Button Animations</h2>
+            <div style="text-align: center;">
+                <button class="btn-click hover-scale">
+                    Click Me!
+                </button>
+                <button class="btn-click hover-scale animate-pulse">
+                    Pulsing Button
+                </button>
+                <button class="btn-click hover-scale">
+                    Add to Cart
+                </button>
+            </div>
+            <div class="info">
+                Buttons with click feedback and hover effects. Try clicking them!
+            </div>
+            <div class="code">
+                className="btn-click hover-scale"
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; color: white; margin-top: 40px;">
+            <p style="font-size: 18px; margin-bottom: 10px;">
+                ✨ All these animations are now available in your e-commerce website!
+            </p>
+            <p style="opacity: 0.8;">
+                Refresh this page to see all animations again
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // Add click event to shake boxes
+        document.querySelectorAll('.demo-box').forEach(box => {
+            box.addEventListener('click', function() {
+                this.classList.add('animate-shake');
+                setTimeout(() => {
+                    this.classList.remove('animate-shake');
+                }, 500);
+            });
+        });
+    </script>
+</body>
+</html>
