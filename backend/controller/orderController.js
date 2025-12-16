@@ -1,5 +1,7 @@
 import orderModel from "../models/orderModel.js";
 import userModel from "../models/userModel.js";
+import productModel from "../models/productModel.js";
+import { startSession } from "../config/mongodb.js";
 import Stripe from "stripe";
 import dotenv from "dotenv";
 
@@ -12,13 +14,79 @@ const deliveryCharge = 10;
 // Initialize Stripe with secret key
 const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 
+// Helper function to update product quantities
+const updateProductQuantities = async (items) => {
+  for (const item of items) {
+    if (!item.size) continue; // Skip if no size specified
+    
+    const product = await productModel.findById(item.productId);
+    if (!product) continue;
+
+    // Check if product has sizeQuantities
+    if (product.sizeQuantities && product.sizeQuantities.length > 0) {
+      const sizeIndex = product.sizeQuantities.findIndex(sq => sq.size === item.size);
+      
+      if (sizeIndex !== -1) {
+        // Update quantity for the specific size
+        product.sizeQuantities[sizeIndex].quantity -= item.quantity;
+        
+        // If quantity becomes zero, remove the size from the product
+        if (product.sizeQuantities[sizeIndex].quantity <= 0) {
+          product.sizeQuantities.splice(sizeIndex, 1);
+          
+          // Also remove from sizes array if it exists there
+          const sizesIndex = product.sizes.indexOf(item.size);
+          if (sizesIndex !== -1) {
+            product.sizes.splice(sizesIndex, 1);
+          }
+        }
+        
+        await product.save();
+      }
+    }
+  }
+};
+
 // --------------------- Place Order using COD ---------------------
 const placeOrder = async (req, res) => {
+  let session;
   try {
+    session = await startSession();
     const { userId, items, address } = req.body;
 
     if (!items || items.length === 0) {
       return res.status(400).json({ success: false, message: "No items in order" });
+    }
+
+    // Validate items have required fields
+    for (const item of items) {
+      if (!item.productId) {
+        throw new Error("Product ID is missing from cart item");
+      }
+      if (typeof item.price !== 'number' || item.price < 0) {
+        throw new Error(`Invalid price for product ${item.productId}: ${item.price}`);
+      }
+      if (typeof item.quantity !== 'number' || item.quantity <= 0) {
+        throw new Error(`Invalid quantity for product ${item.productId}: ${item.quantity}`);
+      }
+    }
+
+    // First, verify all items are in stock
+    for (const item of items) {
+      if (!item.size) continue;
+      
+      const product = await productModel.findById(item.productId).session(session);
+      if (!product) {
+        throw new Error(`Product not found: ${item.productId}`);
+      }
+
+      // Check if product has sizeQuantities
+      if (product.sizeQuantities && product.sizeQuantities.length > 0) {
+        const sizeData = product.sizeQuantities.find(sq => sq.size === item.size);
+        if (!sizeData || sizeData.quantity < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.name} (Size: ${item.size})`);
+        }
+      }
     }
 
     let amount = 0;
@@ -37,25 +105,67 @@ const placeOrder = async (req, res) => {
     };
 
     const newOrder = new orderModel(orderData);
-    await newOrder.save();
+    await newOrder.save({ session });
 
-    await userModel.findByIdAndUpdate(userId, { cartData: {} });
+    // Update product quantities
+    await updateProductQuantities(items);
 
+    // Clear user's cart
+    await userModel.findByIdAndUpdate(userId, { cartData: {} }, { session });
+
+    await session.commitTransaction();
     res.json({ success: true, message: "Order Placed", orderId: newOrder._id });
   } catch (error) {
+    if (session) {
+      await session.abortTransaction();
+      session.endSession();
+    }
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
 };
 
 // --------------------- Place Order using Stripe ---------------------
 const placeOrderStripe = async (req, res) => {
+  let session;
   try {
+    session = await startSession();
     const { userId, items, address } = req.body;
     const { origin } = req.headers;
 
-    if (!items || items.length === 0) {
-      return res.status(400).json({ success: false, message: "No items in order" });
+    // First, verify all items are in stock
+    for (const item of items) {
+      if (!item.productId) {
+        throw new Error("Product ID is missing from cart item");
+      }
+      if (!item.size) continue;
+      
+      const product = await productModel.findById(item.productId).session(session);
+      if (!product) {
+        throw new Error(`Product not found: ${item.productId}`);
+      }
+
+      // Check if product has sizeQuantities
+      if (product.sizeQuantities && product.sizeQuantities.length > 0) {
+        const sizeData = product.sizeQuantities.find(sq => sq.size === item.size);
+        if (!sizeData || sizeData.quantity < item.quantity) {
+          throw new Error(`Insufficient stock for ${product.name} (Size: ${item.size})`);
+        }
+      }
+    }
+
+    // Validate items have required fields
+    for (const item of items) {
+      if (typeof item.price !== 'number' || item.price < 0) {
+        throw new Error(`Invalid price for product ${item.productId}: ${item.price}`);
+      }
+      if (typeof item.quantity !== 'number' || item.quantity <= 0) {
+        throw new Error(`Invalid quantity for product ${item.productId}: ${item.quantity}`);
+      }
     }
 
     let amount = 0;
@@ -96,45 +206,58 @@ const placeOrderStripe = async (req, res) => {
       quantity: 1,
     });
 
-    const session = await stripe.checkout.sessions.create({
+    const stripeSession = await stripe.checkout.sessions.create({
       success_url: `${origin}/verify?success=true&orderId=${newOrder._id}`,
       cancel_url: `${origin}/verify?success=false&orderId=${newOrder._id}`,
       line_items,
       mode: "payment",
     });
 
-    res.json({ success: true, session_url: session.url });
+    await session.commitTransaction();
+    res.json({ success: true, session_url: stripeSession.url });
   } catch (error) {
+    if (session) {
+      await session.abortTransaction();
+      session.endSession();
+    }
     console.error(error);
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
 };
 
 // --------------------- Verify Stripe Payment ---------------------
 const verifyStripe = async (req, res) => {
+  let session;
   try {
-    const { orderId, success, userId } = req.body;
-
-    if (!orderId) {
-      return res.status(400).json({ success: false, message: "Order ID required" });
+    session = await startSession();
+    const { orderId } = req.body;
+    const order = await orderModel.findById(orderId).session(session);
+    
+    if (!order) {
+      throw new Error("Order not found");
     }
-
-    if (success === "true") {
-      // Payment successful - update order
-      await orderModel.findByIdAndUpdate(orderId, { payment: true });
-      
-      // Clear user cart
-      await userModel.findByIdAndUpdate(userId, { cartData: {} });
-      
-      res.json({ success: true, message: "Payment verified successfully" });
+    
+    if (order.payment) {
+      return res.json({ success: true, message: "Payment already verified" });
     } else {
       // Payment failed - delete the order
       await orderModel.findByIdAndDelete(orderId);
       res.json({ success: false, message: "Payment cancelled" });
     }
   } catch (error) {
+    if (session) {
+      await session.abortTransaction();
+    }
     console.error("Stripe verification error:", error);
     res.status(500).json({ success: false, message: error.message });
+  } finally {
+    if (session) {
+      session.endSession();
+    }
   }
 };
 

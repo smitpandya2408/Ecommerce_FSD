@@ -10,15 +10,32 @@ const Product = () => {
   const { products, currency, addtocart } = useContext(ShopContext);
   const [productData, setProductData] = useState(null);
   const [image, setImage] = useState("");
-  const [size, setsize] = useState("");
+  const [size, setSize] = useState("");
+  const [availableSizes, setAvailableSizes] = useState([]);
 
   useEffect(() => {
     const foundProduct = products.find((item) => item._id === productid);
     if (foundProduct) {
       setProductData(foundProduct);
       setImage(foundProduct.image[0]);
+      
+      // Process available sizes with quantities
+      if (foundProduct.sizeQuantities && foundProduct.sizeQuantities.length > 0) {
+        const available = foundProduct.sizeQuantities.filter(item => item.quantity > 0);
+        setAvailableSizes(available);
+        // Set the first available size as default if none selected
+        if (available.length > 0 && !size) {
+          setSize(available[0].size);
+        }
+      } else {
+        // Fallback to sizes array if no sizeQuantities available
+        setAvailableSizes(foundProduct.sizes.map(s => ({ size: s, quantity: 1 })));
+        if (foundProduct.sizes.length > 0 && !size) {
+          setSize(foundProduct.sizes[0]);
+        }
+      }
     }
-  }, [productid, products]);
+  }, [productid, products, size]);
 
   if (!productData) return null;
 
@@ -63,24 +80,58 @@ const Product = () => {
           <p className="mt-5 text-gray-500 md:w-4/5">{productData.description}</p>
 
           <div className="flex flex-col gap-4 my-8">
-            <p>Select Size</p>
-            <div className="flex gap-2">
-              {productData.sizes.map((item, index) => (
-                <button
-                  onClick={() => setsize(item)}
-                  className={`border py-2 px-4 bg-gray-400 ${
-                    item === size ? "border-red-100" : ""
-                  }`}
-                  key={index}
-                >
-                  {item}
-                </button>
-              ))}
+            <div className="flex items-center gap-4">
+              <p>Select Size</p>
+              {size && availableSizes.find(s => s.size === size)?.quantity <= 0 && (
+                <span className="text-red-500 text-sm">This size is currently out of stock</span>
+              )}
+            </div>
+            <div className="flex gap-2 flex-wrap">
+              {productData.sizeQuantities?.length > 0 ? (
+                productData.sizeQuantities.map((item, index) => (
+                  <button
+                    type="button"
+                    onClick={() => setSize(item.size)}
+                    disabled={item.quantity <= 0}
+                    className={`border py-2 px-4 ${
+                      item.size === size 
+                        ? 'bg-black text-white' 
+                        : item.quantity > 0 
+                          ? 'bg-gray-100 hover:bg-gray-200' 
+                          : 'bg-gray-100 opacity-50 cursor-not-allowed'
+                    }`}
+                    key={index}
+                    title={
+                      item.quantity <= 0 
+                        ? 'This size is not available' 
+                        : item.quantity === 1 
+                          ? 'Product is Out Of Stock' 
+                          : `${item.quantity} available`
+                    }
+                  >
+                    {item.size}
+                  </button>
+                ))
+              ) : (
+                <p className="text-red-500">This product is currently out of stock</p>
+              )}
             </div>
           </div>
 
-          <button onClick={() => addtocart(productData._id, size)} className="bg-black text-white px-8 py-3 text-sm active:bg-gray-700">
-            ADD TO CART
+          <button 
+            onClick={() => addtocart(productData._id, size)} 
+            className={`px-8 py-3 text-sm ${
+              !size || availableSizes.find(s => s.size === size)?.quantity <= 0
+                ? 'bg-gray-400 cursor-not-allowed'
+                : 'bg-black text-white hover:bg-gray-800 active:bg-gray-700'
+            }`}
+            disabled={!size || availableSizes.find(s => s.size === size)?.quantity <= 0}
+          >
+            {!size 
+              ? 'SELECT A SIZE' 
+              : availableSizes.find(s => s.size === size)?.quantity <= 0 
+                ? 'OUT OF STOCK' 
+                : 'ADD TO CART'}
           </button>
 
           <hr className="mt-8 sm:w-4/5" />

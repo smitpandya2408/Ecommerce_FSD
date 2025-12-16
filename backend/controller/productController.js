@@ -11,6 +11,7 @@ const addproduct = async (req, res) => {
       category,
       subCategory,
       sizes,
+      sizeQuantities,
       bestseller,
     } = req.body;
 
@@ -44,6 +45,22 @@ const addproduct = async (req, res) => {
       }
     }
 
+    // Parse sizeQuantities if it's a string
+    let parsedSizeQuantities = [];
+    try {
+      parsedSizeQuantities = typeof sizeQuantities === 'string' 
+        ? JSON.parse(sizeQuantities) 
+        : sizeQuantities || [];
+    } catch (e) {
+      console.error('Error parsing sizeQuantities:', e);
+      parsedSizeQuantities = [];
+    }
+
+    // Filter out sizes with quantity > 0
+    const validSizes = parsedSizeQuantities
+      .filter(item => item.quantity > 0)
+      .map(item => item.size);
+
     const productData = {
       name,
       description,
@@ -51,7 +68,8 @@ const addproduct = async (req, res) => {
       price: Number(price),
       subCategory,
       bestseller: bestseller === "true" || bestseller === true,
-      sizes: parsedSizes,
+      sizes: validSizes.length > 0 ? validSizes : parsedSizes,
+      sizeQuantities: parsedSizeQuantities.filter(item => item.quantity > 0),
       image: imageurl,
       date: Date.now(),
     };

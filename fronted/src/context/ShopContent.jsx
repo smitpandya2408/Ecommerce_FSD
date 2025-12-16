@@ -17,14 +17,50 @@ const ShopContextProvider = ({ children }) => {
   const [token, setToken] = useState("");
   const navigate = useNavigate();
 
-  // Add to cart
+  // Get available quantity for a specific size
+  const getAvailableQuantity = (productId, size) => {
+    const product = products.find(p => p._id === productId);
+    if (!product) return 0;
+    
+    // Check if sizeQuantities exists and has the size
+    if (product.sizeQuantities && product.sizeQuantities.length > 0) {
+      const sizeData = product.sizeQuantities.find(item => item.size === size);
+      return sizeData ? sizeData.quantity : 0;
+    }
+    
+    // Fallback to checking sizes array
+    return product.sizes && product.sizes.includes(size) ? 1 : 0;
+  };
+
+  // Check if a product is in stock
+  const isInStock = (productId, size) => {
+    return getAvailableQuantity(productId, size) > 0;
+  };
+
+  // Add to cart with quantity check
   const addtocart = async (itemId, size) => {
     if (!size) {
-      toast.error("Select product size");
+      toast.error("Please select a size");
+      return;
+    }
+
+    // Check if the selected size is in stock
+    if (!isInStock(itemId, size)) {
+      toast.error("Selected size is out of stock");
       return;
     }
 
     const cartData = JSON.parse(JSON.stringify(cartitems));
+    const currentQty = cartData[itemId]?.[size] || 0;
+    const availableQty = getAvailableQuantity(itemId, size);
+
+    // Check if we can add more items to cart
+    if (currentQty >= availableQty) {
+      toast.error(`Only ${availableQty} items available in this size`);
+      return;
+    }
+
+    // Update cart
     if (cartData[itemId]) {
       cartData[itemId][size] = (cartData[itemId][size] || 0) + 1;
     } else {
@@ -32,6 +68,7 @@ const ShopContextProvider = ({ children }) => {
     }
     setCartitems(cartData);
 
+    // Sync with backend if user is logged in
     if (token) {
       try {
         await axios.post(
@@ -39,9 +76,18 @@ const ShopContextProvider = ({ children }) => {
           { itemId, size },
           { headers: { Authorization: `Bearer ${token}` } }
         );
+        toast.success("Item added to cart");
       } catch (error) {
-        console.log(error);
-        toast.error(error.message);
+        console.error("Error adding to cart:", error);
+        toast.error(error.response?.data?.message || "Failed to add to cart");
+        // Revert local cart state on error
+        setCartitems(prev => ({
+          ...prev,
+          [itemId]: {
+            ...prev[itemId],
+            [size]: (prev[itemId]?.[size] || 1) - 1
+          }
+        }));
       }
     }
   };
@@ -63,43 +109,101 @@ const ShopContextProvider = ({ children }) => {
     return totalCount;
   };
 
-  // Update quantity
-  const updateQuantity = async (itemId, size, quantity) => {
-    const cartData = structuredClone(cartitems);
-    cartData[itemId][size] = quantity;
+  // Update quantity with stock check
+  const updateQuantity = async (itemId, size, newQuantity) => {
+    // Validate quantity
+    if (newQuantity < 0) return;
+    
+    const availableQty = getAvailableQuantity(itemId, size);
+    if (newQuantity > availableQty) {
+      toast.error(`Only ${availableQty} items available in this size`);
+      return;
+    }
+
+    const cartData = JSON.parse(JSON.stringify(cartitems));
+    
+    // If quantity is 0, remove the size from cart
+    if (newQuantity === 0) {
+      if (cartData[itemId]) {
+        delete cartData[itemId][size];
+        // If no more sizes for this item, remove the item
+        if (Object.keys(cartData[itemId]).length === 0) {
+          delete cartData[itemId];
+        }
+      }
+    } else {
+      // Update quantity
+      if (!cartData[itemId]) cartData[itemId] = {};
+      cartData[itemId][size] = newQuantity;
+    }
+    
     setCartitems(cartData);
 
+    // Sync with backend if user is logged in
     if (token) {
       try {
         await axios.post(
           `${backendUrl}/api/cart/update`,
-          { itemId, size, quantity },
+          { itemId, size, quantity: newQuantity },
           { headers: { Authorization: `Bearer ${token}` } }
         );
       } catch (error) {
-        console.log(error);
-        toast.error(error.message);
+        console.error("Error updating cart:", error);
+        toast.error(error.response?.data?.message || "Failed to update cart");
+        // Re-fetch cart from server to stay in sync
+        if (token) {
+          await getUserCart(token);
+        }
       }
     }
   };
 
-  // Calculate total amount
+  // Calculate total amount with validation
   const getCartAmount = () => {
     let totalAmount = 0;
-    for (const items in cartitems) {
-      let itemInfo = products.find((p) => p._id === items);
-      if (!itemInfo) continue;
-      for (const item in cartitems[items]) {
-        try {
-          if (cartitems[items][item] > 0) {
-            totalAmount += itemInfo.price * cartitems[items][item];
+    
+    // If no cart items, return 0
+    if (!cartitems || Object.keys(cartitems).length === 0) {
+      return 0;
+    }
+    
+    // If no products loaded, return 0
+    if (!Array.isArray(products) || products.length === 0) {
+      console.warn('No products available for cart calculation');
+      return 0;
+    }
+    
+    try {
+      for (const itemId in cartitems) {
+        const itemInfo = products.find((p) => p._id === itemId);
+        
+        // Skip if item not found or has no price
+        if (!itemInfo || typeof itemInfo.price === 'undefined') {
+          console.warn(`Item not found or has no price: ${itemId}`);
+          continue;
+        }
+        
+        // Parse price as float
+        const price = parseFloat(itemInfo.price);
+        if (isNaN(price)) {
+          console.warn(`Invalid price for item ${itemId}:`, itemInfo.price);
+          continue;
+        }
+        
+        // Process each size/quantity
+        for (const size in cartitems[itemId]) {
+          const quantity = parseInt(cartitems[itemId][size], 10);
+          if (quantity > 0) {
+            totalAmount += price * quantity;
           }
-        } catch (error) {
-          console.log(error);
         }
       }
+      return totalAmount;
+    } catch (error) {
+      console.error('Error calculating cart amount:', error);
+      return 0; // Return 0 in case of any error
     }
-    return totalAmount;
+
   };
 
   // Fetch products
@@ -162,6 +266,8 @@ const ShopContextProvider = ({ children }) => {
     getCartCount,
     updateQuantity,
     getCartAmount,
+    getAvailableQuantity,
+    isInStock,
     navigate,
     backendUrl,
     setToken,

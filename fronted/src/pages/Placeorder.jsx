@@ -111,7 +111,7 @@ const Placeorder = () => {
     setLoading(true);
 
     try {
-      // ✅ Build order items
+      // ✅ Build order items with price
       const orderItems = [];
       for (const itemId in cartitems) {
         for (const size in cartitems[itemId]) {
@@ -119,7 +119,9 @@ const Placeorder = () => {
             const itemInfo = products.find((p) => p._id === itemId);
             if (itemInfo) {
               orderItems.push({
-                ...itemInfo,
+                productId: itemInfo._id,
+                name: itemInfo.name,
+                price: itemInfo.price,
                 size,
                 quantity: cartitems[itemId][size],
               });
@@ -134,10 +136,39 @@ const Placeorder = () => {
         return;
       }
 
+      // Calculate cart amount with validation
+      const calculateCartTotal = () => {
+        let total = 0;
+        for (const item of orderItems) {
+          const price = parseFloat(item.price) || 0;
+          const quantity = parseInt(item.quantity, 10) || 0;
+          total += price * quantity;
+        }
+        return total;
+      };
+
+      // Calculate amounts with validation
+      const cartAmount = calculateCartTotal();
+      const deliveryFee = parseFloat(delivery_fee) || 0;
+      const totalAmount = parseFloat((cartAmount + deliveryFee).toFixed(2));
+      
+      // Debug logging
+      console.log('Order items:', orderItems);
+      console.log('Cart amount:', cartAmount);
+      console.log('Delivery fee:', deliveryFee);
+      console.log('Total amount:', totalAmount);
+      
+      // Validate total amount
+      if (isNaN(totalAmount) || totalAmount <= 0) {
+        toast.error("Invalid order amount. Please check your cart items.");
+        setLoading(false);
+        return;
+      }
+      
       const orderData = {
         address: formData,
         items: orderItems,
-        amount: getCartAmount() + delivery_fee,
+        amount: totalAmount,
       };
 
       // ✅ Correct token header
@@ -145,21 +176,38 @@ const Placeorder = () => {
         headers: { Authorization: `Bearer ${token}` },
       };
 
+      // Log the order data before sending
+      console.log('Order Data:', JSON.stringify(orderData, null, 2));
+      console.log('Request URL:', `${backendUrl}/api/order/place`);
+
       // ✅ Handle COD
       if (method === "cod") {
-        const response = await axios.post(
-          `${backendUrl}/api/order/place`,
-          orderData,
-          config
-        );
+        try {
+          console.log('Sending order request...');
+          const response = await axios.post(
+            `${backendUrl}/api/order/place`,
+            orderData,
+            config
+          );
 
-        if (response.data.success) {
-          // Clear cart only after successful order placement
-          setCartitems({});
-          toast.success("Order placed successfully!");
-          navigate("/orders");
-        } else {
-          toast.error(response.data.message);
+          console.log('Order response:', response.data);
+
+          if (response.data.success) {
+            // Clear cart only after successful order placement
+            setCartitems({});
+            toast.success("Order placed successfully!");
+            navigate("/orders");
+          } else {
+            console.error('Order failed:', response.data);
+            toast.error(response.data.message || 'Failed to place order');
+          }
+        } catch (error) {
+          console.error('Order submission error:', {
+            message: error.message,
+            response: error.response?.data,
+            stack: error.stack
+          });
+          toast.error(error.response?.data?.message || 'Failed to place order');
         }
       }
 

@@ -13,7 +13,13 @@ const Add = ({ token }) => {
   const [subcategory, setSubcategory] = useState("Topwear");
   
   const [bestseller, setBestseller] = useState(false);
-  const [size, setSize] = useState([]);
+  const [sizes, setSizes] = useState([
+    { size: 'S', quantity: 0 },
+    { size: 'M', quantity: 0 },
+    { size: 'L', quantity: 0 },
+    { size: 'XL', quantity: 0 },
+    { size: 'XXL', quantity: 0 }
+  ]);
   const [loading, setLoading] = useState(false);
 
   // ✅ Submit Handler
@@ -31,7 +37,10 @@ const Add = ({ token }) => {
       formData.append("category", category);
       formData.append("subCategory", subcategory);
       formData.append("bestseller", bestseller);
-      formData.append("sizes", JSON.stringify(size));
+      // Filter out sizes with quantity > 0
+      const selectedSizes = sizes.filter(s => s.quantity > 0);
+      formData.append("sizes", JSON.stringify(selectedSizes.map(s => s.size)));
+      formData.append("sizeQuantities", JSON.stringify(selectedSizes));
 
       // ✅ Append all selected images
       images.forEach((img, i) => {
@@ -52,7 +61,13 @@ const Add = ({ token }) => {
         setDescription("");
         setPrice("");
         setImages([null, null, null, null]);
-        setSize([]);
+        setSizes([
+          { size: 'S', quantity: 0 },
+          { size: 'M', quantity: 0 },
+          { size: 'L', quantity: 0 },
+          { size: 'XL', quantity: 0 },
+          { size: 'XXL', quantity: 0 }
+        ]);
         setBestseller(false);
       } else {
         toast.error(response.data.message || "Failed to add product");
@@ -166,28 +181,32 @@ const Add = ({ token }) => {
         />
       </div>
 
-      {/* Size Selection */}
-      <div>
-        <p className="pb-2">Available Sizes</p>
-        <div className="flex gap-3 flex-wrap">
-          {["S", "M", "L", "XL", "XXL"].map((s) => (
-            <p
-              key={s}
-              onClick={() =>
-                setSize((prev) =>
-                  prev.includes(s)
-                    ? prev.filter((item) => item !== s)
-                    : [...prev, s]
-                )
-              }
-              className={`px-3 py-1 cursor-pointer rounded ${
-                size.includes(s)
-                  ? "bg-pink-300 text-black font-medium"
-                  : "bg-gray-200"
-              }`}
-            >
-              {s}
-            </p>
+      {/* Size and Quantity Selection */}
+      <div className="w-full">
+        <p className="mb-2">Size and Quantity</p>
+        <div className="space-y-3">
+          {sizes.map((item, index) => (
+            <div key={item.size} className="flex items-center gap-3">
+              <div className="w-10 font-medium">{item.size}</div>
+              <input
+                type="number"
+                min="0"
+                value={item.quantity}
+                onChange={(e) => {
+                  const newSizes = [...sizes];
+                  newSizes[index] = {
+                    ...newSizes[index],
+                    quantity: parseInt(e.target.value) || 0
+                  };
+                  setSizes(newSizes);
+                }}
+                className="w-20 px-2 py-1 border rounded"
+                placeholder="Qty"
+              />
+              <span className="text-sm text-gray-500">
+                {item.quantity > 0 ? 'In Stock' : 'Out of Stock'}
+              </span>
+            </div>
           ))}
         </div>
       </div>

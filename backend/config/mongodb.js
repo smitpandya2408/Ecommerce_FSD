@@ -1,20 +1,48 @@
 import mongoose from "mongoose";
 
-const connectDB = async()=>{
-    mongoose.connection.on('connected',()=>{
-        console.log("✅ MongoDB connected successfully")
-    })
+let isConnected = false;
 
-    mongoose.connection.on('error', (err) => {
-        console.error("❌ MongoDB connection error:", err)
-    })
+const connectDB = async () => {
+    if (isConnected) {
+        console.log('Using existing database connection');
+        return;
+    }
 
     try {
-        await mongoose.connect(`${process.env.MONGODB_URL}/e-commerce`)
-    } catch (error) {
-        console.error("❌ Failed to connect to MongoDB:", error.message)
-        process.exit(1)
-    }
-}
+        mongoose.connection.on('connected', () => {
+            console.log("✅ MongoDB connected successfully");
+            isConnected = true;
+        });
 
-export default connectDB
+        mongoose.connection.on('error', (err) => {
+            console.error("❌ MongoDB connection error:", err);
+            isConnected = false;
+        });
+
+        mongoose.connection.on('disconnected', () => {
+            console.log("ℹ️  MongoDB disconnected");
+            isConnected = false;
+        });
+
+        await mongoose.connect(process.env.MONGODB_URL, {
+            dbName: 'e-commerce',
+            useNewUrlParser: true,
+            useUnifiedTopology: true,
+        });
+    } catch (error) {
+        console.error("❌ Failed to connect to MongoDB:", error.message);
+        process.exit(1);
+    }
+};
+
+// Function to start a session and transaction
+const startSession = async () => {
+    if (!isConnected) {
+        await connectDB();
+    }
+    const session = await mongoose.startSession();
+    session.startTransaction();
+    return session;
+};
+
+export { connectDB, startSession };
