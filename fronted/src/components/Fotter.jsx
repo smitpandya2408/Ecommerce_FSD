@@ -29,7 +29,7 @@ function Footer() {
         <div>
           <p className="text-xl font-medium mb-5">Get In TOuch</p>
           <ul className="flex flex-col gap-1 text-gray-700">
-            <li>+1-212-456-789</li>
+            <li>+91 7069297337</li>
             <li>Contact@foreveryou.com</li>
           </ul>
         </div>
